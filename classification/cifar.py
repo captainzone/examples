@@ -18,12 +18,11 @@ import torch.utils.data.distributed
 import torchvision
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-#import torchvision.models as models
 import torch.nn.functional as F
-#import models.mnist as customized_mnist_models
 import models.cifar as models
-#import models.imagenet as customized_imagenet_models
 
+
+from utils import Bar, Logger, AverageMeter, accuracy, mkdir_p, savefig
 
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
@@ -82,6 +81,8 @@ parser.add_argument('-b', '--batch-size', default=128, type=int,
                          'using Data Parallel or Distributed Data Parallel')
 parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
                     metavar='LR', help='initial learning rate', dest='lr')
+parser.add_argument('--gamma', type=float, default=0.1, help='LR is multiplied by gamma on schedule.')
+
 parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                     help='momentum')
 parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
@@ -89,6 +90,9 @@ parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
                     dest='weight_decay')
 parser.add_argument('-p', '--print-freq', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')
+# Checkpoints
+parser.add_argument('-c', '--checkpoint', default='checkpoint', type=str, metavar='PATH',
+                    help='path to save checkpoint (default: checkpoint)')
 parser.add_argument('--resume', default='', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
 parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
@@ -118,7 +122,12 @@ parser.add_argument('--test-batch-size', type=int, default=100, metavar='N',
                         help='input batch size for testing (default: 1000)')
 parser.add_argument('--imagenet_data', default='../../../data/imagenet', type=str, metavar='DIR',
                     help='path to imagenet dataset (default: none)')
-                  
+parser.add_argument('--schedule', type=int, nargs='+', default=[150, 225],
+                        help='Decrease learning rate at these epochs.')
+parser.add_argument('--depth', type=int, default=18, help='Model depth.')
+                        
+
+                                          
 best_acc1 = 0
 
 
@@ -159,6 +168,16 @@ def main():
 def main_worker(gpu, ngpus_per_node, args):
     global best_acc1
     args.gpu = gpu
+    state = {k: v for k, v in args._get_kwargs()}
+    if not os.path.isdir(args.checkpoint):
+        mkdir_p(args.checkpoint)
+
+    if args.dataset == 'cifar10':
+        dataloader = datasets.CIFAR10
+        num_classes = 10
+    else:
+        dataloader = datasets.CIFAR100
+        num_classes = 100
 
     if args.gpu is not None:
         print("Use GPU: {} for training".format(args.gpu))
@@ -178,7 +197,37 @@ def main_worker(gpu, ngpus_per_node, args):
         model = models.__dict__[args.arch](pretrained=True)
     else:
         print("=> creating model '{}'".format(args.arch))
-        model = models.__dict__[args.arch]()
+        if args.arch.startswith('resnext'):
+            model = models.__dict__[args.arch](
+                    cardinality=args.cardinality,
+                    num_classes=num_classes,
+                    depth=args.depth,
+                    widen_factor=args.widen_factor,
+                    dropRate=args.drop,
+                )
+        elif args.arch.startswith('densenet'):
+            model = models.__dict__[args.arch](
+                    num_classes=num_classes,
+                    depth=args.depth,
+                    growthRate=args.growthRate,
+                    compressionRate=args.compressionRate,
+                    dropRate=args.drop,
+                )
+        elif args.arch.startswith('wrn'):
+            model = models.__dict__[args.arch](
+                    num_classes=num_classes,
+                    depth=args.depth,
+                    widen_factor=args.widen_factor,
+                    dropRate=args.drop,
+                )
+        elif args.arch.endswith('resnet'):
+            model = models.__dict__[args.arch](
+                    num_classes=num_classes,
+                    depth=args.depth,
+                    block_name=args.block_name,
+                )
+        else:
+            model = models.__dict__[args.arch](num_classes=num_classes)
 
     if args.distributed:
         # For multiprocessing distributed, DistributedDataParallel constructor
@@ -232,6 +281,7 @@ def main_worker(gpu, ngpus_per_node, args):
     cudnn.benchmark = True
     # Data
     print('==> Preparing dataset %s' % args.dataset)
+
     if args.dataset=='mnist':
         train_loader = torch.utils.data.DataLoader(
             datasets.MNIST('./data/MNIST', train=True, download=True,
@@ -261,10 +311,10 @@ def main_worker(gpu, ngpus_per_node, args):
         ])
 
         trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
-        train_loader = torch.utils.data.DataLoader(trainset, args.batch_size, shuffle=True, num_workers=2)
+        train_loader = torch.utils.data.DataLoader(trainset, args.batch_size, shuffle=True, num_workers=args.workers)
 
         testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
-        val_loader = torch.utils.data.DataLoader(testset, args.test_batch_size, shuffle=False, num_workers=2)
+        val_loader = torch.utils.data.DataLoader(testset, args.test_batch_size, shuffle=False, num_workers=args.workers)
 
     if args.dataset=='cifar100':
         transform_train = transforms.Compose([
@@ -346,7 +396,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 'state_dict': model.state_dict(),
                 'best_acc1': best_acc1,
                 'optimizer' : optimizer.state_dict(),
-            }, is_best)
+            }, is_best, checkpoint=args.checkpoint)
 
 
 def train(train_loader, model, criterion, optimizer, epoch, args):
@@ -445,11 +495,18 @@ def validate(val_loader, model, criterion, args):
 
     return top1.avg
 
-
+'''
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     if is_best:
         shutil.copyfile(filename, 'model_best.pth.tar')
+'''
+
+def save_checkpoint(state, is_best, checkpoint='checkpoint', filename='checkpoint.pth.tar'):
+    filepath = os.path.join(checkpoint, filename)
+    torch.save(state, filepath)
+    if is_best:
+        shutil.copyfile(filepath, os.path.join(checkpoint, 'model_best.pth.tar'))
 
 
 class AverageMeter(object):
@@ -471,10 +528,12 @@ class AverageMeter(object):
 
 
 def adjust_learning_rate(optimizer, epoch, args):
-    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    lr = args.lr * (0.1 ** (epoch // 150))
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
+    global state
+    state = {k: v for k, v in args._get_kwargs()}
+    if epoch in args.schedule:
+        state['lr'] *= args.gamma
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = state['lr']
 
 
 def accuracy(output, target, topk=(1,)):
