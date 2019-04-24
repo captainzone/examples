@@ -127,8 +127,12 @@ parser.add_argument('--schedule', type=int, nargs='+', default=[150, 225],
 parser.add_argument('--depth', type=int, default=18, help='Model depth.')
 parser.add_argument('--block-name', type=str, default='BasicBlock',
                     help='the building block for Resnet and Preresnet: BasicBlock, Bottleneck (default: Basicblock for cifar10/cifar100)')
-                        
-
+parser.add_argument('--cardinality', type=int, default=8, help='Model cardinality (group).')
+parser.add_argument('--widen-factor', type=int, default=4, help='Widen factor. 4 -> 64, 8 -> 128, ...')
+parser.add_argument('--drop', '--dropout', default=0, type=float,
+                    metavar='Dropout', help='Dropout ratio')                     
+parser.add_argument('--growthRate', type=int, default=12, help='Growth rate for DenseNet.')
+parser.add_argument('--compressionRate', type=int, default=2, help='Compression Rate (theta) for DenseNet.')
                                           
 best_acc1 = 0
 
