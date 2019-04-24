@@ -125,6 +125,8 @@ parser.add_argument('--imagenet_data', default='../../../data/imagenet', type=st
 parser.add_argument('--schedule', type=int, nargs='+', default=[150, 225],
                         help='Decrease learning rate at these epochs.')
 parser.add_argument('--depth', type=int, default=18, help='Model depth.')
+parser.add_argument('--block-name', type=str, default='BasicBlock',
+                    help='the building block for Resnet and Preresnet: BasicBlock, Bottleneck (default: Basicblock for cifar10/cifar100)')
                         
 
                                           
