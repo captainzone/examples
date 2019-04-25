@@ -1,0 +1,1 @@
+python cifar.py -a mobilenetv2 --epochs 450 --schedule 150 300 --gamma 0.1 --wd 1e-4 --checkpoint checkpoints/cifar10/mobilenetv2

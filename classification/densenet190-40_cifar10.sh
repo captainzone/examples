@@ -1,0 +1,1 @@
+python cifar.py -a densenet --depth 190 --growthRate 40 --batch-size 64 --epochs 300 --schedule 150 225 --wd 1e-4 --gamma 0.1 --checkpoint checkpoints/cifar10/densenet-bc-L190-k40

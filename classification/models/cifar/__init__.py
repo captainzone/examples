@@ -68,4 +68,7 @@ from .resnext import *
 from .wrn import *
 from .preresnet import *
 from .densenet import *
+from .pnasnet import *
+from .mobilenet import *
 from .shufflenetv2 import *
+from .mobilenetv2 import *

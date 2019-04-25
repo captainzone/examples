@@ -76,7 +76,7 @@ class PNASNet(nn.Module):
             self.cell_type = CellA
         elif cell_type.lower()=='cellb':
             self.cell_type = CellB
-        else 
+        else :
             raise ValueError('Undefined Cell type')
 
         self.conv1 = nn.Conv2d(3, num_planes, kernel_size=3, stride=1, padding=1, bias=False)

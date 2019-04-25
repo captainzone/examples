@@ -76,7 +76,7 @@ class MobileNetV2(nn.Module):
         out = self.linear(out)
         return out
 
-def mobilenet(**kwargs):
+def mobilenetv2(**kwargs):
     return MobileNetV2(**kwargs)
     
 def test():

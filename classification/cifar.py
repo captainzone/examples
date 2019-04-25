@@ -117,7 +117,7 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'fastest way to use PyTorch for either single node or '
                          'multi node data parallel training')
 #derek add
-parser.add_argument('--dataset', type = str, help = 'mnist, cifar10, cifar100 or imagenet', default = 'mnist')
+parser.add_argument('--dataset', type = str, help = 'mnist, cifar10, cifar100 or imagenet', default = 'cifar10')
 parser.add_argument('--test-batch-size', type=int, default=100, metavar='N',
                         help='input batch size for testing (default: 1000)')
 parser.add_argument('--imagenet_data', default='../../../data/imagenet', type=str, metavar='DIR',
@@ -240,7 +240,7 @@ def main_worker(gpu, ngpus_per_node, args):
                     num_planes=44,
                     cell_type=args.cell_type,
                 )
-        elif args.arch.endswith('shufflnetv2'):
+        elif args.arch.endswith('shufflenetv2'):
             model = models.__dict__[args.arch](
                     num_classes=num_classes,
                     net_size=args.net_size,
