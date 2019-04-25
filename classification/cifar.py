@@ -133,8 +133,8 @@ parser.add_argument('--drop', '--dropout', default=0, type=float,
                     metavar='Dropout', help='Dropout ratio')                     
 parser.add_argument('--growthRate', type=int, default=12, help='Growth rate for DenseNet.')
 parser.add_argument('--compressionRate', type=int, default=2, help='Compression Rate (theta) for DenseNet.')
-parser.add_argument('--cell_type', type=str, default='CellA',
-                    help='cell type for pnasnet')                                         
+parser.add_argument('--cell_type', type=str, default='CellA',help='cell type for pnasnet')                                         
+parser.add_argument('--net_size', type=int, default=1,help='net size for shufflenetv2')                                         
 best_acc1 = 0
 
 
@@ -240,6 +240,11 @@ def main_worker(gpu, ngpus_per_node, args):
                     num_planes=44,
                     cell_type=args.cell_type,
                 )
+        elif args.arch.endswith('shufflnetv2'):
+            model = models.__dict__[args.arch](
+                    num_classes=num_classes,
+                    net_size=args.net_size,
+                )        
         else:
             model = models.__dict__[args.arch](num_classes=num_classes)
 

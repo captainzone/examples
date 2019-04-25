@@ -16,7 +16,8 @@ class ShuffleBlock(nn.Module):
         '''Channel shuffle: [N,C,H,W] -> [N,g,C/g,H,W] -> [N,C/g,g,H,w] -> [N,C,H,W]'''
         N, C, H, W = x.size()
         g = self.groups
-        return x.view(N, g, C/g, H, W).permute(0, 2, 1, 3, 4).reshape(N, C, H, W)
+        Cg=int(C/g)
+        return x.view(N, g, Cg, H, W).permute(0, 2, 1, 3, 4).reshape(N, C, H, W)
 
 
 class SplitBlock(nn.Module):
@@ -94,7 +95,7 @@ class DownBlock(nn.Module):
 
 
 class ShuffleNetV2(nn.Module):
-    def __init__(self, net_size):
+    def __init__(self, net_size, num_classes=10):
         super(ShuffleNetV2, self).__init__()
         out_channels = configs[net_size]['out_channels']
         num_blocks = configs[net_size]['num_blocks']
@@ -109,7 +110,7 @@ class ShuffleNetV2(nn.Module):
         self.conv2 = nn.Conv2d(out_channels[2], out_channels[3],
                                kernel_size=1, stride=1, padding=0, bias=False)
         self.bn2 = nn.BatchNorm2d(out_channels[3])
-        self.linear = nn.Linear(out_channels[3], 10)
+        self.linear = nn.Linear(out_channels[3], num_classes)
 
     def _make_layer(self, out_channels, num_blocks):
         layers = [DownBlock(self.in_channels, out_channels)]
@@ -150,7 +151,8 @@ configs = {
         'num_blocks': (3, 7, 3)
     }
 }
-
+def shufflenetv2(**kwargs):
+    return ShuffleNetV2(**kwargs)
 
 def test():
     net = ShuffleNetV2(net_size=0.5)
