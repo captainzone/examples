@@ -20,6 +20,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torch.nn.functional as F
 import models.cifar as models
+import datetime
 
 
 from utils import Bar, Logger, AverageMeter, accuracy, mkdir_p, savefig
@@ -100,13 +101,29 @@ parser.add_argument('--drop', '--dropout', default=0, type=float,
 parser.add_argument('--growthRate', type=int, default=12, help='Growth rate for DenseNet.')
 parser.add_argument('--compressionRate', type=int, default=2, help='Compression Rate (theta) for DenseNet.')
 parser.add_argument('--cell_type', type=str, default='CellA',help='cell type for pnasnet')                                         
-parser.add_argument('--net_size', type=int, default=1,help='net size for shufflenetv2')                       
+parser.add_argument('--net_size', type=int, default=1,help='net size for shufflenetv2')   
+parser.add_argument('--results', type = str, help = 'dir to save result txt files', default = 'results/')                    
+
+args = parser.parse_args()
 
 best_acc1 = 0
 
+save_dir = args.results +'/' +args.dataset
+
+if not os.path.exists(save_dir):
+    os.system('mkdir -p %s' % save_dir)
+
+model_str=str(args.arch)+'-'+str(args.depth)+'-'+str(args.cardinality)+'-'+str(args.widen_factor)+'-'+str(args.growthRate)+'_'+args.dataset
+
+txtfile=save_dir+"/"+model_str+".txt"
+nowTime=datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
+if os.path.exists(txtfile):
+    os.system('mv %s %s' % (txtfile, txtfile+".bak-%s" % nowTime))
+
+
 
 def main():
-    args = parser.parse_args()
+
     if args.seed is not None:
         random.seed(args.seed)
         torch.manual_seed(args.seed)
@@ -319,11 +336,14 @@ def main_worker(gpu, ngpus_per_node, args):
         train(train_loader, model, criterion, optimizer, epoch, args)
 
         # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, args)
+        acc1 = validate(epoch,val_loader, model, criterion, args)
 
         # remember best acc@1 and save checkpoint
         is_best = acc1 > best_acc1
         best_acc1 = max(acc1, best_acc1)
+        
+        with open(txtfile, "a") as myfile:
+            myfile.write(str(int(epoch)) + ': '+'Best Acc=' + str(best_acc1.item()) +' '+'Acc1='  + str(acc1.item()) +"\n")
 
         if not args.multiprocessing_distributed or (args.multiprocessing_distributed
                 and args.rank % ngpus_per_node == 0):
@@ -388,7 +408,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
                    data_time=data_time, loss=losses, top1=top1, top5=top5))
 
 
-def validate(val_loader, model, criterion, args):
+def validate(epoch,val_loader, model, criterion, args):
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
@@ -429,6 +449,8 @@ def validate(val_loader, model, criterion, args):
 
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
               .format(top1=top1, top5=top5))
+        with open(txtfile, "a") as myfile:
+            myfile.write(str(int(epoch)) + ': ' +'top1 =' + str(top1.avg.item()) +' '+'top5 ='+ str(top5.avg.item())+"\n")
 
     return top1.avg
 
@@ -471,7 +493,6 @@ def adjust_learning_rate(optimizer, epoch, args):
         state['lr'] *= args.gamma
         for param_group in optimizer.param_groups:
             param_group['lr'] = state['lr']
-
 
 def accuracy(output, target, topk=(1,)):
     """Computes the accuracy over the k top predictions for the specified values of k"""
