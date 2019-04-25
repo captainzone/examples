@@ -133,7 +133,8 @@ parser.add_argument('--drop', '--dropout', default=0, type=float,
                     metavar='Dropout', help='Dropout ratio')                     
 parser.add_argument('--growthRate', type=int, default=12, help='Growth rate for DenseNet.')
 parser.add_argument('--compressionRate', type=int, default=2, help='Compression Rate (theta) for DenseNet.')
-                                          
+parser.add_argument('--cell_type', type=str, default='CellA',
+                    help='cell type for pnasnet')                                         
 best_acc1 = 0
 
 
@@ -231,6 +232,13 @@ def main_worker(gpu, ngpus_per_node, args):
                     num_classes=num_classes,
                     depth=args.depth,
                     block_name=args.block_name,
+                )
+        elif args.arch.endswith('pnasnet'):
+            model = models.__dict__[args.arch](
+                    num_classes=num_classes,
+                    num_cells=6,
+                    num_planes=44,
+                    cell_type=args.cell_type,
                 )
         else:
             model = models.__dict__[args.arch](num_classes=num_classes)
