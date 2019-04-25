@@ -28,39 +28,6 @@ model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
 
-'''
-# Models
-default_model_names = sorted(name for name in models.__dict__
-    if name.islower() and not name.startswith("__")
-    and callable(models.__dict__[name]))
-
-customized_mnist_models_names = sorted(name for name in customized_mnist_models.__dict__
-    if name.islower() and not name.startswith("__")
-    and callable(customized_mnist_models.__dict__[name]))
-
-for name in customized_mnist_models.__dict__:
-    if name.islower() and not name.startswith("__") and callable(customized_mnist_models.__dict__[name]):
-        models.__dict__[name] = customized_mnist_models.__dict__[name]
-
-customized_cifar_models_names = sorted(name for name in customized_cifar_models.__dict__
-    if name.islower() and not name.startswith("__")
-    and callable(customized_cifar_models.__dict__[name]))
-
-for name in customized_cifar_models.__dict__:
-    if name.islower() and not name.startswith("__") and callable(customized_cifar_models.__dict__[name]):
-        models.__dict__[name] = customized_cifar_models.__dict__[name]
-
-customized_imagenet_models_names = sorted(name for name in customized_imagenet_models.__dict__
-    if name.islower() and not name.startswith("__")
-    and callable(customized_imagnet_models.__dict__[name]))
-
-for name in customized_imagenet_models.__dict__:
-    if name.islower() and not name.startswith("__") and callable(customized_imagenet_models.__dict__[name]):
-        models.__dict__[name] = customized_imagenet_models.__dict__[name]
-
-model_names = default_model_names + customized_mnist_models_names + customized_cifar_models_names + customized_imagenet_models_names
-'''
-
 parser = argparse.ArgumentParser(description='[Derek]PyTorch All Classification Training')
 #parser.add_argument('data', metavar='DIR', help='path to dataset')
 parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
@@ -116,8 +83,7 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'N processes per node, which has N GPUs. This is the '
                          'fastest way to use PyTorch for either single node or '
                          'multi node data parallel training')
-#derek add
-parser.add_argument('--dataset', type = str, help = 'mnist, cifar10, cifar100 or imagenet', default = 'cifar10')
+parser.add_argument('--dataset', type = str, help = 'cifar10 or cifar100', default = 'cifar10')
 parser.add_argument('--test-batch-size', type=int, default=100, metavar='N',
                         help='input batch size for testing (default: 1000)')
 parser.add_argument('--imagenet_data', default='../../../data/imagenet', type=str, metavar='DIR',
@@ -134,7 +100,8 @@ parser.add_argument('--drop', '--dropout', default=0, type=float,
 parser.add_argument('--growthRate', type=int, default=12, help='Growth rate for DenseNet.')
 parser.add_argument('--compressionRate', type=int, default=2, help='Compression Rate (theta) for DenseNet.')
 parser.add_argument('--cell_type', type=str, default='CellA',help='cell type for pnasnet')                                         
-parser.add_argument('--net_size', type=int, default=1,help='net size for shufflenetv2')                                         
+parser.add_argument('--net_size', type=int, default=1,help='net size for shufflenetv2')                       
+
 best_acc1 = 0
 
 
@@ -200,10 +167,10 @@ def main_worker(gpu, ngpus_per_node, args):
                                 world_size=args.world_size, rank=args.rank)
     # create model
     if args.pretrained:
-        print("=> using pre-trained model '{}'".format(args.arch))
+        print("=> using pre-trained model '{}'".format(args.arch. args.depth))
         model = models.__dict__[args.arch](pretrained=True)
     else:
-        print("=> creating model '{}'".format(args.arch))
+        print("=> creating model '{0}', depth={1}, cardinality={2}".format(args.arch, args.depth, args.cardinality))
         if args.arch.startswith('resnext'):
             model = models.__dict__[args.arch](
                     cardinality=args.cardinality,
@@ -300,21 +267,6 @@ def main_worker(gpu, ngpus_per_node, args):
     cudnn.benchmark = True
     # Data
     print('==> Preparing dataset %s' % args.dataset)
-
-    if args.dataset=='mnist':
-        train_loader = torch.utils.data.DataLoader(
-            datasets.MNIST('./data/MNIST', train=True, download=True,
-                       transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
-                       batch_size=args.batch_size, shuffle=True)
-        val_loader = torch.utils.data.DataLoader(
-            datasets.MNIST('./data/MNIST', train=False, transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
-                       batch_size=args.test_batch_size, shuffle=True)
     
     if args.dataset=='cifar10':
         transform_train = transforms.Compose([
@@ -353,40 +305,6 @@ def main_worker(gpu, ngpus_per_node, args):
 
         testset = torchvision.datasets.CIFAR100(root='./data', train=False, download=False, transform=transform_test)
         val_loader = torch.utils.data.DataLoader(testset,args.test_batch_size, shuffle=False, num_workers=args.workers)
-
-    if args.dataset=='imagenet':                
-        traindir = os.path.join(args.imagenet_data, 'train')
-        valdir = os.path.join(args.imagenet_data, 'val')
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-
-        train_dataset = datasets.ImageFolder(
-            traindir,
-            transforms.Compose([
-            transforms.RandomResizedCrop(224),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            normalize,
-        ]))
-
-        if args.distributed:
-            train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-        else:
-            train_sampler = None
-
-        train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
-            num_workers=args.workers, pin_memory=True, sampler=train_sampler)
-
-        val_loader = torch.utils.data.DataLoader(
-            datasets.ImageFolder(valdir, transforms.Compose([
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                normalize,
-            ])),
-            batch_size=args.batch_size, shuffle=False,
-            num_workers=args.workers, pin_memory=True)
 
     if args.evaluate:
         validate(val_loader, model, criterion, args)
