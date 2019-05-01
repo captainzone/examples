@@ -1,4 +1,4 @@
-# pytorch-classification
+# classification !
 Classification on CIFAR-10/100 and ImageNet with PyTorch.
 
 ## Features
@@ -45,8 +45,9 @@ Note that the number of parameters are computed on the CIFAR-10 dataset.
 | ShufflenetV2              | -                  | 92.83              | 72.3               |
 | Pnasnet                   | -                  | 82.34              | 53.79              |
 
-
+```
 ![cifar](utils/images/cifar.png)
+```
 
 ```
 ### ImageNet
