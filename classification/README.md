@@ -29,7 +29,9 @@ Note that the number of parameters are computed on the CIFAR-10 dataset.
 ### ImageNet
 Single-crop (224x224) validation error rate is reported. 
 ## Multi-processing Distributed Data Parallel Training
+
 You should always use the NCCL backend for multi-processing distributed training since it currently provides the best distributed training performance.
+
 | Model                | Params (M)         |  Top-1 Error (%)   | Top-5 Error  (%)   |
 | -------------------  | ------------------ | ------------------ | ------------------ |
 | ResNet-18            | 11.69              |  30.09             | 10.78              |
