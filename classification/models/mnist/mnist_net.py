@@ -8,7 +8,7 @@ import torch
 __all__ = ['mnistnet']
 
 class MnistNet(nn.Module):
-    def __init__(self):
+    def __init__(self,num_classes=10):
         super(MnistNet, self).__init__()
         self.conv1 = nn.Conv2d(1, 20, 5, 1)
         self.conv2 = nn.Conv2d(20, 50, 5, 1)
