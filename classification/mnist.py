@@ -20,6 +20,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torch.nn.functional as F
 import models.mnist as models
+import datetime
 
 
 from utils import Bar, Logger, AverageMeter, accuracy, mkdir_p, savefig
@@ -95,12 +96,25 @@ parser.add_argument('--schedule', type=int, nargs='+', default=[150, 225],
 parser.add_argument('--widen-factor', type=int, default=4, help='Widen factor. 4 -> 64, 8 -> 128, ...')
 parser.add_argument('--drop', '--dropout', default=0, type=float,
                     metavar='Dropout', help='Dropout ratio')                     
+parser.add_argument('--results', type = str, help = 'dir to save result txt files', default = 'results/')    
                                  
+args = parser.parse_args()
 best_acc1 = 0
 
+save_dir = args.results +'/' +args.dataset
+
+if not os.path.exists(save_dir):
+    os.system('mkdir -p %s' % save_dir)
+
+model_str=str(args.arch)+'_'+args.dataset
+
+txtfile=save_dir+"/"+model_str+".txt"
+nowTime=datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
+if os.path.exists(txtfile):
+    os.system('mv %s %s' % (txtfile, txtfile+".bak-%s" % nowTime))
 
 def main():
-    args = parser.parse_args()
+    
     if args.seed is not None:
         random.seed(args.seed)
         torch.manual_seed(args.seed)
@@ -137,6 +151,8 @@ def main_worker(gpu, ngpus_per_node, args):
     global best_acc1
     num_classes=10
     args.gpu = gpu
+    with open(txtfile, "a") as myfile:
+        myfile.write('epoch: best_acc test_acc\n')
     state = {k: v for k, v in args._get_kwargs()}
     if not os.path.isdir(args.checkpoint):
         mkdir_p(args.checkpoint)
@@ -294,6 +310,9 @@ def main_worker(gpu, ngpus_per_node, args):
         # remember best acc@1 and save checkpoint
         is_best = acc1 > best_acc1
         best_acc1 = max(acc1, best_acc1)
+        
+        with open(txtfile, "a") as myfile:
+            myfile.write(str(int(epoch)) + ': '+' ' + str(best_acc1.item()) +' '+ str(acc1.item()) +"\n")
 
         if not args.multiprocessing_distributed or (args.multiprocessing_distributed
                 and args.rank % ngpus_per_node == 0):
@@ -399,6 +418,8 @@ def validate(val_loader, model, criterion, args):
 
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
               .format(top1=top1, top5=top5))
+        #with open(txtfile, "a") as myfile:
+        #    myfile.write(str(int(epoch)) + ': ' +'top1 =' + str(top1.avg.item()) +' '+'top5 ='+ str(top5.avg.item())+"\n")
 
     return top1.avg
 

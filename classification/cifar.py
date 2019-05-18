@@ -159,6 +159,8 @@ def main():
 def main_worker(gpu, ngpus_per_node, args):
     global best_acc1
     args.gpu = gpu
+    with open(txtfile, "a") as myfile:
+        myfile.write('epoch: best_acc test_acc\n')
     state = {k: v for k, v in args._get_kwargs()}
     if not os.path.isdir(args.checkpoint):
         mkdir_p(args.checkpoint)
@@ -326,6 +328,7 @@ def main_worker(gpu, ngpus_per_node, args):
     if args.evaluate:
         validate(val_loader, model, criterion, args)
         return
+    print('Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))
 
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
@@ -343,7 +346,7 @@ def main_worker(gpu, ngpus_per_node, args):
         best_acc1 = max(acc1, best_acc1)
         
         with open(txtfile, "a") as myfile:
-            myfile.write(str(int(epoch)) + ': '+'Best Acc=' + str(best_acc1.item()) +' '+'Acc1='  + str(acc1.item()) +"\n")
+            myfile.write(str(int(epoch)) + ': '+' ' + str(best_acc1.item()) +' '+ str(acc1.item()) +"\n")
 
         if not args.multiprocessing_distributed or (args.multiprocessing_distributed
                 and args.rank % ngpus_per_node == 0):
@@ -449,8 +452,8 @@ def validate(epoch,val_loader, model, criterion, args):
 
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
               .format(top1=top1, top5=top5))
-        with open(txtfile, "a") as myfile:
-            myfile.write(str(int(epoch)) + ': ' +'top1 =' + str(top1.avg.item()) +' '+'top5 ='+ str(top5.avg.item())+"\n")
+        #with open(txtfile, "a") as myfile:
+        #    myfile.write(str(int(epoch)) + ': ' +'top1 =' + str(top1.avg.item()) +' '+'top5 ='+ str(top5.avg.item())+"\n")
 
     return top1.avg
 
