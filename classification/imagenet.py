@@ -18,10 +18,9 @@ import torch.utils.data.distributed
 import torchvision
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-#import torchvision.models as models
+import torchvision.models as models
 import torch.nn.functional as F
-#import models.mnist as customized_mnist_models
-import models.cifar as models
+#import models.imagenet as models
 #import models.imagenet as customized_imagenet_models
 
 
@@ -29,38 +28,6 @@ model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
 
-'''
-# Models
-default_model_names = sorted(name for name in models.__dict__
-    if name.islower() and not name.startswith("__")
-    and callable(models.__dict__[name]))
-
-customized_mnist_models_names = sorted(name for name in customized_mnist_models.__dict__
-    if name.islower() and not name.startswith("__")
-    and callable(customized_mnist_models.__dict__[name]))
-
-for name in customized_mnist_models.__dict__:
-    if name.islower() and not name.startswith("__") and callable(customized_mnist_models.__dict__[name]):
-        models.__dict__[name] = customized_mnist_models.__dict__[name]
-
-customized_cifar_models_names = sorted(name for name in customized_cifar_models.__dict__
-    if name.islower() and not name.startswith("__")
-    and callable(customized_cifar_models.__dict__[name]))
-
-for name in customized_cifar_models.__dict__:
-    if name.islower() and not name.startswith("__") and callable(customized_cifar_models.__dict__[name]):
-        models.__dict__[name] = customized_cifar_models.__dict__[name]
-
-customized_imagenet_models_names = sorted(name for name in customized_imagenet_models.__dict__
-    if name.islower() and not name.startswith("__")
-    and callable(customized_imagnet_models.__dict__[name]))
-
-for name in customized_imagenet_models.__dict__:
-    if name.islower() and not name.startswith("__") and callable(customized_imagenet_models.__dict__[name]):
-        models.__dict__[name] = customized_imagenet_models.__dict__[name]
-
-model_names = default_model_names + customized_mnist_models_names + customized_cifar_models_names + customized_imagenet_models_names
-'''
 
 parser = argparse.ArgumentParser(description='[Derek]PyTorch All Classification Training')
 #parser.add_argument('data', metavar='DIR', help='path to dataset')
@@ -113,7 +80,7 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'fastest way to use PyTorch for either single node or '
                          'multi node data parallel training')
 #derek add
-parser.add_argument('--dataset', type = str, help = 'mnist, cifar10, cifar100 or imagenet', default = 'mnist')
+parser.add_argument('--dataset', type = str, help = 'imagenet', default = 'imagenet')
 parser.add_argument('--test-batch-size', type=int, default=100, metavar='N',
                         help='input batch size for testing (default: 1000)')
 parser.add_argument('--imagenet_data', default='../../../data/imagenet', type=str, metavar='DIR',
@@ -232,58 +199,6 @@ def main_worker(gpu, ngpus_per_node, args):
     cudnn.benchmark = True
     # Data
     print('==> Preparing dataset %s' % args.dataset)
-    if args.dataset=='mnist':
-        train_loader = torch.utils.data.DataLoader(
-            datasets.MNIST('./data/MNIST', train=True, download=True,
-                       transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
-                       batch_size=args.batch_size, shuffle=True)
-        val_loader = torch.utils.data.DataLoader(
-            datasets.MNIST('./data/MNIST', train=False, transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
-                       batch_size=args.test_batch_size, shuffle=True)
-    
-    if args.dataset=='cifar10':
-        transform_train = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
-
-        transform_test = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
-
-        trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
-        train_loader = torch.utils.data.DataLoader(trainset, args.batch_size, shuffle=True, num_workers=2)
-
-        testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
-        val_loader = torch.utils.data.DataLoader(testset, args.test_batch_size, shuffle=False, num_workers=2)
-
-    if args.dataset=='cifar100':
-        transform_train = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
-
-        transform_test = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
-
-        trainset = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=transform_train)
-        train_loader= torch.utils.data.DataLoader(trainset,args.batch_size, shuffle=True, num_workers=args.workers)
-
-        testset = torchvision.datasets.CIFAR100(root='./data', train=False, download=False, transform=transform_test)
-        val_loader = torch.utils.data.DataLoader(testset,args.test_batch_size, shuffle=False, num_workers=args.workers)
 
     if args.dataset=='imagenet':                
         traindir = os.path.join(args.imagenet_data, 'train')
