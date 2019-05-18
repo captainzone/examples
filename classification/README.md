@@ -30,8 +30,4 @@ Note that the number of parameters are computed on the CIFAR-10 dataset.
 | Mobilenet                 | -                  | 92.00              | 67.6               |
 | MobilnetV2                | -                  | 93.90              | 75.61              |
 | ShufflenetV2              | -                  | 92.83              | 72.3               |
-| Pnasnet                   | -                  | 82.34              | 53.79              |
 
-
-## Contribute
-Feel free to create a pull request if you find any bugs or you want to contribute (e.g., more datasets and more network structures).
