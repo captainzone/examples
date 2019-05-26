@@ -24,7 +24,6 @@ Note that the number of parameters are computed on the CIFAR-10 dataset.
 | Mobilenet                 | -                  | 92.00              | 67.6               |
 | MobilnetV2                | -                  | 93.90              | 75.61              |
 | ShufflenetV2              | -                  | 92.83              | 72.3               |
-| Pnasnet                   | -                  | 82.34              | 53.79              |
 
 ### ImageNet
 Single-crop (224x224) validation error rate is reported. 
